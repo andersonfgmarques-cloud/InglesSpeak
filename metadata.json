@@ -1,0 +1,5 @@
+{
+  "name": "SpeakFluent AI - Treinador de Pronúncia",
+  "description": "Aplicativo de treinamento de pronúncia e sotaque em inglês com IA.",
+  "requestFramePermissions": ["microphone"]
+}

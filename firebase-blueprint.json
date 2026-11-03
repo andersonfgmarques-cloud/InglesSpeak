@@ -1,0 +1,63 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Stores user-specific settings and profile information.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The unique ID of the user." },
+        "name": { "type": "string", "description": "The display name of the user." },
+        "email": { "type": "string", "description": "The email address of the user." },
+        "photoURL": { "type": "string", "description": "The URL of the user's profile photo." },
+        "bio": { "type": "string", "description": "A short biography of the user." },
+        "level": { "type": "string", "description": "The user's English proficiency level." },
+        "nativeLanguage": { "type": "string", "description": "The user's native language." },
+        "goals": { "type": "array", "items": { "type": "string" }, "description": "The user's learning goals." },
+        "location": { "type": "string", "description": "The user's location." },
+        "joinedDate": { "type": "string", "description": "The date the user joined." },
+        "languagePackDownloaded": { "type": "boolean", "description": "Whether the native language pack is downloaded." }
+      },
+      "required": ["uid", "email"]
+    },
+    "PracticeHistory": {
+      "title": "Practice History",
+      "description": "Stores the user's practice sessions.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The ID of the user who practiced." },
+        "sentence": { "type": "string", "description": "The sentence practiced." },
+        "score": { "type": "number", "description": "The score achieved." },
+        "date": { "type": "string", "description": "The date of the practice session." }
+      },
+      "required": ["uid", "sentence", "score", "date"]
+    },
+    "TranslationHistory": {
+      "title": "Translation History",
+      "description": "Stores the user's translation history.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The ID of the user." },
+        "originalText": { "type": "string", "description": "The original text." },
+        "translatedText": { "type": "string", "description": "The translated text." },
+        "detectedLanguage": { "type": "string", "description": "The detected language." },
+        "targetLanguage": { "type": "string", "description": "The target language." },
+        "date": { "type": "string", "description": "The date of the translation." }
+      },
+      "required": ["uid", "originalText", "translatedText", "detectedLanguage", "targetLanguage", "date"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": "UserProfile",
+      "description": "User profile documents."
+    },
+    "/history/{historyId}": {
+      "schema": "PracticeHistory",
+      "description": "Practice history documents."
+    },
+    "/translations/{translationId}": {
+      "schema": "TranslationHistory",
+      "description": "Translation history documents."
+    }
+  }
+}
