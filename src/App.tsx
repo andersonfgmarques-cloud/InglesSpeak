@@ -161,23 +161,8 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  useEffect(() => {
-    if (user) {
-      // Request microphone permission automatically after login
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        navigator.mediaDevices.getUserMedia({ audio: true })
-          .then(stream => {
-            // Stop tracks immediately, we just wanted to trigger the permission prompt
-            stream.getTracks().forEach(track => track.stop());
-            console.log("Microphone permission granted automatically.");
-          })
-          .catch(err => {
-            console.warn("Microphone permission denied automatically:", err);
-            // Non-blocking alert/toast could go here if needed
-          });
-      }
-    }
-  }, [user]);
+  // A permissão do microfone é solicitada somente quando o usuário
+  // inicia uma funcionalidade de gravação ou reconhecimento de voz.
 
   useEffect(() => {
     if (!user) {
