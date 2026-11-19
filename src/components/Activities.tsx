@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import { DICTIONARY_WORDS } from '../data/dictionaryData';
 import { DictionaryWord } from '../types';
+import { generateTTS } from '../lib/gemini';
+import { playPcm16Base64 } from '../lib/audio';
 
 type ActivityType = 'word-match' | 'listening' | 'scramble' | null;
 
@@ -125,10 +127,13 @@ export default function Activities({ onComplete }: ActivitiesProps) {
     onComplete(finalXp);
   };
 
-  const speak = (text: string) => {
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-US';
-    window.speechSynthesis.speak(utterance);
+  const speak = async (text: string) => {
+    try {
+      const audio = await generateTTS(text, 'Kore', 'normal', 'en-GB');
+      await playPcm16Base64(audio);
+    } catch (error) {
+      console.error('Falha ao reproduzir áudio da atividade:', error);
+    }
   };
 
   // Word Match Logic

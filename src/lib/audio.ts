@@ -100,3 +100,27 @@ export function decodePcm16ToAudioBuffer(
 
   return buffer;
 }
+
+/** Reproduz PCM mono, signed 16-bit little-endian, retornado pela Cloud Function Gemini TTS. */
+export async function playPcm16Base64(
+  base64: string,
+  sampleRate = 24000,
+  speed = 1
+): Promise<void> {
+  if (!base64) throw new Error("O serviço retornou um áudio vazio.");
+  const context = createAudioContext();
+  try {
+    if (context.state === "suspended") await context.resume();
+    const buffer = decodePcm16ToAudioBuffer(context, base64, sampleRate);
+    const source = context.createBufferSource();
+    source.buffer = buffer;
+    source.playbackRate.value = Math.max(0.75, Math.min(1.25, speed));
+    source.connect(context.destination);
+    await new Promise<void>((resolve, reject) => {
+      source.onended = () => resolve();
+      try { source.start(0); } catch (error) { reject(error); }
+    });
+  } finally {
+    await context.close();
+  }
+}

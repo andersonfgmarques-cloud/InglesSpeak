@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { DICTIONARY_WORDS } from '../data/dictionaryData';
 import { DictionaryWord, UserWordProgress } from '../types';
+import { generateTTS } from '../lib/gemini';
+import { playPcm16Base64 } from '../lib/audio';
 
 const CATEGORIES = ['Todos', 'Verbo', 'Substantivo', 'Adjetivo', 'Advérbio', 'Preposição', 'Conjunção', 'Pronome', 'Outro'];
 
@@ -123,11 +125,14 @@ export default function Dictionary() {
     }));
   };
 
-  const speak = (text: string) => {
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-US';
-    utterance.rate = playbackRate;
-    window.speechSynthesis.speak(utterance);
+  const speak = async (text: string) => {
+    try {
+      const speed = playbackRate < 0.9 ? 'slow' : playbackRate > 1.05 ? 'fast' : 'normal';
+      const audio = await generateTTS(text, 'Kore', speed, 'en-GB');
+      await playPcm16Base64(audio, 24000, playbackRate);
+    } catch (error) {
+      console.error('Falha ao reproduzir áudio do dicionário:', error);
+    }
   };
 
   const nextFlashcard = () => {

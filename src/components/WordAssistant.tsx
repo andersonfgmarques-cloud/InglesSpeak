@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { Search, Volume2, Loader2, Book, MessageSquare, Info, Star, UserRound, Baby, Sparkles, ArrowRight, Languages } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getWordDetails, generateTTS, WordDetails } from '../lib/gemini';
+import { playPcm16Base64 } from '../lib/audio';
 
 const VOICES = [
   { id: 'Kore', name: 'Mulher Adulta', icon: UserRound, color: 'text-pink-600', bg: 'bg-pink-100/50', border: 'border-pink-200' },
   { id: 'Charon', name: 'Homem Adulto', icon: UserRound, color: 'text-blue-600', bg: 'bg-blue-100/50', border: 'border-blue-200' },
-  { id: 'Puck', name: 'Criança Menino', icon: Baby, color: 'text-cyan-600', bg: 'bg-cyan-100/50', border: 'border-cyan-200' },
-  { id: 'Zephyr', name: 'Criança Menina', icon: Baby, color: 'text-rose-600', bg: 'bg-rose-100/50', border: 'border-rose-200' },
+  { id: 'Puck', name: 'Voz expressiva', icon: UserRound, color: 'text-cyan-600', bg: 'bg-cyan-100/50', border: 'border-cyan-200' },
+  { id: 'Zephyr', name: 'Voz suave', icon: UserRound, color: 'text-rose-600', bg: 'bg-rose-100/50', border: 'border-rose-200' },
 ];
 
 export default function WordAssistant() {
@@ -41,37 +42,10 @@ export default function WordAssistant() {
   const playAudio = async (text: string) => {
     setAudioLoading(true);
     try {
-      const base64 = await generateTTS(text, selectedVoice, speechSpeed);
-      
-      const binaryString = window.atob(base64);
-      const len = binaryString.length;
-      const bytes = new Uint8Array(len);
-      for (let i = 0; i < len; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-      const int16Array = new Int16Array(bytes.buffer);
-      const float32Array = new Float32Array(int16Array.length);
-      
-      for (let i = 0; i < int16Array.length; i++) {
-        float32Array[i] = int16Array[i] / 32768.0;
-      }
-      
-      const buffer = audioContext.createBuffer(1, float32Array.length, 24000);
-      buffer.getChannelData(0).set(float32Array);
-      
-      const source = audioContext.createBufferSource();
-      source.buffer = buffer;
-      source.connect(audioContext.destination);
-      
-      if (audioContext.state === 'suspended') {
-        await audioContext.resume();
-      }
-      
-      source.start();
-    } catch (err) {
-      console.error("Erro ao reproduzir áudio:", err);
+      const base64 = await generateTTS(text, selectedVoice, speechSpeed, 'en-GB');
+      await playPcm16Base64(base64);
+    } catch (error) {
+      console.error('Erro ao reproduzir áudio:', error);
     } finally {
       setAudioLoading(false);
     }

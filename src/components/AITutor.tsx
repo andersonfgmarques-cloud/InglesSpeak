@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Mic, Send, Volume2, X, MessageSquare, Sparkles, User, Bot, ChevronRight, Play, Award, RotateCcw, ChevronLeft, Copy, Check, Languages, AlertCircle } from 'lucide-react';
 import { chatWithAI, generateTTS, translateText, ChatMessage, ChatResponse } from '../lib/gemini';
+import { playPcm16Base64 } from '../lib/audio';
 
 interface Scenario {
   id: string;
@@ -412,104 +413,20 @@ export default function AITutor({ onSessionComplete }: AITutorProps) {
   };
 
   const speakText = async (text: string, index: number | null = null) => {
-    console.log("SpeakText triggered for:", text);
-    if (isSpeaking || loadingAudio) {
-      console.log("Already speaking or loading, skipping.");
-      return;
-    }
-    
+    if (isSpeaking || loadingAudio) return;
     setLoadingAudio(true);
     setSpeakingMessageIndex(index);
     try {
-      // Create or resume AudioContext
-      if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
-        console.log("Initializing new AudioContext");
-        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-        audioContextRef.current = new AudioContextClass({ sampleRate: 24000 });
-      }
-      
-      const audioContext = audioContextRef.current;
-      if (audioContext.state === 'suspended') {
-        console.log("Resuming AudioContext");
-        await audioContext.resume();
-      }
-
-      console.log(`Generating TTS with Gemini at ${speechSpeed} speed...`);
-      const base64Audio = await generateTTS(text, 'Kore', speechSpeed);
-      console.log("TTS generated successfully, length:", base64Audio.length);
-      
-      const binaryString = window.atob(base64Audio);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      
-      const pcmData = new Int16Array(bytes.buffer, 0, Math.floor(bytes.byteLength / 2));
-      const float32Data = new Float32Array(pcmData.length);
-      for (let i = 0; i < pcmData.length; i++) {
-        float32Data[i] = pcmData[i] / 32768.0;
-      }
-
-      const audioBuffer = audioContext.createBuffer(1, float32Data.length, 24000);
-      audioBuffer.getChannelData(0).set(float32Data);
-
-      const source = audioContext.createBufferSource();
-      source.buffer = audioBuffer;
-      
-      // Adjust playback rate based on speed for extra effect
-      if (speechSpeed === 'slow') source.playbackRate.value = 0.9;
-      else if (speechSpeed === 'fast') source.playbackRate.value = 1.1;
-      else source.playbackRate.value = 1.0;
-
-      source.connect(audioContext.destination);
-      
-      source.onended = () => {
-        console.log("Audio playback ended");
-        setIsSpeaking(false);
-        setSpeakingMessageIndex(null);
-      };
-      
+      const base64Audio = await generateTTS(text, 'Kore', speechSpeed, 'en-GB');
       setLoadingAudio(false);
       setIsSpeaking(true);
-      console.log("Starting audio playback");
-      source.start(0);
-
-      // Safety timeout to reset isSpeaking after 15 seconds
-      setTimeout(() => {
-        setIsSpeaking(false);
-        setSpeakingMessageIndex(null);
-      }, 15000);
+      await playPcm16Base64(base64Audio, 24000, speechSpeed === 'slow' ? 0.9 : speechSpeed === 'fast' ? 1.1 : 1);
     } catch (error) {
-      console.error("Gemini TTS error, falling back to Web Speech API:", error);
-      
-      // Fallback to Web Speech API
-      try {
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'en-US';
-        
-        // Set rate for fallback
-        if (speechSpeed === 'slow') utterance.rate = 0.7;
-        else if (speechSpeed === 'fast') utterance.rate = 1.3;
-        else utterance.rate = 1.0;
-
-        utterance.onstart = () => setIsSpeaking(true);
-        utterance.onend = () => {
-          setIsSpeaking(false);
-          setSpeakingMessageIndex(null);
-        };
-        utterance.onerror = () => {
-          setIsSpeaking(false);
-          setSpeakingMessageIndex(null);
-          setLoadingAudio(false);
-        };
-        
-        setLoadingAudio(false);
-        window.speechSynthesis.speak(utterance);
-      } catch (fallbackError) {
-        console.error("Web Speech API fallback failed:", fallbackError);
-        setIsSpeaking(false);
-        setLoadingAudio(false);
-      }
+      console.error('Gemini TTS playback failed:', error);
+    } finally {
+      setIsSpeaking(false);
+      setLoadingAudio(false);
+      setSpeakingMessageIndex(null);
     }
   };
 

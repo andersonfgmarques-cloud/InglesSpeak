@@ -20,6 +20,7 @@ import { BIBLE_VERSES, BibleVerse } from '../data/bibleData';
 import { generateTTS, analyzeSpeech, getWordDetails, SpeechFeedback, WordDetails } from '../lib/gemini';
 import Recorder from './Recorder';
 import FeedbackDisplay from './FeedbackDisplay';
+import { playPcm16Base64 } from '../lib/audio';
 
 const CATEGORIES = [
   'Todos', 'Faith', 'Hope', 'Courage', 'Wisdom', 'Gratitude', 'Family', 
@@ -67,43 +68,13 @@ export default function BibleLearning() {
   }, []);
 
   const playVerseAudio = async () => {
-    if (!currentVerse) return;
+    if (!currentVerse || audioLoading) return;
     setAudioLoading(true);
     try {
-      // Create or resume AudioContext
-      if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
-        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-        audioContextRef.current = new AudioContextClass({ sampleRate: 24000 });
-      }
-      
-      const audioContext = audioContextRef.current;
-      if (audioContext.state === 'suspended') {
-        await audioContext.resume();
-      }
-
-      const base64Audio = await generateTTS(currentVerse.text, 'Kore', 'slow');
-      
-      const binaryString = window.atob(base64Audio);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      
-      const pcmData = new Int16Array(bytes.buffer, 0, Math.floor(bytes.byteLength / 2));
-      const float32Data = new Float32Array(pcmData.length);
-      for (let i = 0; i < pcmData.length; i++) {
-        float32Data[i] = pcmData[i] / 32768.0;
-      }
-
-      const audioBuffer = audioContext.createBuffer(1, float32Data.length, 24000);
-      audioBuffer.getChannelData(0).set(float32Data);
-
-      const source = audioContext.createBufferSource();
-      source.buffer = audioBuffer;
-      source.connect(audioContext.destination);
-      source.start();
-    } catch (err) {
-      console.error("Error playing audio:", err);
+      const audio = await generateTTS(currentVerse.text, 'Kore', 'slow', 'en-GB');
+      await playPcm16Base64(audio, 24000, 0.9);
+    } catch (error) {
+      console.error('Erro ao reproduzir áudio bíblico:', error);
     } finally {
       setAudioLoading(false);
     }
